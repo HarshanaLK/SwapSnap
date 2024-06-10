@@ -7,7 +7,6 @@ PREDICTOR_PATH = "shape_predictor_68_face_landmarks.dat"
 SCALE_FACTOR = 1 
 FEATHER_AMOUNT = 11
 
-
 FACE_POINTS = list(range(17, 68))
 MOUTH_POINTS = list(range(48, 61))
 RIGHT_BROW_POINTS = list(range(17, 22))
@@ -132,19 +131,19 @@ def correct_colours(im1, im2, landmarks1):
                                                 im2_blur.astype(np.float64))
 
 
-    im1, landmarks1 = read_im_and_landmarks(sys.argv[1])
-    im2, landmarks2 = read_im_and_landmarks(sys.argv[2])
+im1, landmarks1 = read_im_and_landmarks(sys.argv[1])
+im2, landmarks2 = read_im_and_landmarks(sys.argv[2])
 
-    M = transformation_from_points(landmarks1[ALIGN_POINTS],
-                                landmarks2[ALIGN_POINTS])
+M = transformation_from_points(landmarks1[ALIGN_POINTS],
+                               landmarks2[ALIGN_POINTS])
 
-    mask = get_face_mask(im2, landmarks2)
-    warped_mask = warp_im(mask, M, im1.shape)
-    combined_mask = np.max([get_face_mask(im1, landmarks1), warped_mask],
-                            axis=0)
+mask = get_face_mask(im2, landmarks2)
+warped_mask = warp_im(mask, M, im1.shape)
+combined_mask = np.max([get_face_mask(im1, landmarks1), warped_mask],
+                          axis=0)
 
-    warped_im2 = warp_im(im2, M, im1.shape)
-    warped_corrected_im2 = correct_colours(im1, warped_im2, landmarks1)
+warped_im2 = warp_im(im2, M, im1.shape)
+warped_corrected_im2 = correct_colours(im1, warped_im2, landmarks1)
 
 output_im = im1 * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask
 
