@@ -1,7 +1,9 @@
+from flask import Flask, render_template, request, send_file
 import cv2
 import dlib
 import numpy as np
 import sys
+
 
 PREDICTOR_PATH = "shape_predictor_68_face_landmarks.dat"
 SCALE_FACTOR = 1 
@@ -151,3 +153,35 @@ cv2.imwrite('output.jpg', output_im)
 
 
 
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    if 'file1' not in request.files or 'file2' not in request.files:
+        return "Please upload two images."
+
+    file1 = request.files['file1']
+    file2 = request.files['file2']
+
+    if file1.filename == '' or file2.filename == '':
+        return "Please select two images."
+
+    im1 = cv2.imdecode(np.fromstring(file1.read(), np.uint8), cv2.IMREAD_COLOR)
+    im2 = cv2.imdecode(np.fromstring(file2.read(), np.uint8), cv2.IMREAD_COLOR)
+
+   
+
+    output_im = process_images(im1, im2)
+
+    # Save output to a temporary file
+    cv2.imwrite('output.jpg', output_im)
+
+    # Return the output file to the user
+    return send_file('output.jpg', mimetype='image/jpeg')
+
+if __name__ == '__main__':
+    app.run(debug=True)
