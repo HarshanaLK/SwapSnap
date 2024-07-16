@@ -175,7 +175,7 @@ def upload():
 
    
 
-    output_im = process_images(im1, im2)
+    
 
     # Save output to a temporary file
     cv2.imwrite('output.jpg', output_im)
