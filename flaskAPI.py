@@ -1,9 +1,12 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import cv2
 import dlib
 import numpy as np
-import sys
+import os
 
+app = Flask(__name__)
+CORS(app)
 
 PREDICTOR_PATH = "shape_predictor_68_face_landmarks.dat"
 SCALE_FACTOR = 1 
@@ -47,36 +50,6 @@ def get_landmarks(im):
 
     return np.matrix([[p.x, p.y] for p in predictor(im, rects[0]).parts()])
 
-def annotate_landmarks(im, landmarks):
-    im = im.copy()
-    for idx, point in enumerate(landmarks):
-        pos = (point[0, 0], point[0, 1])
-        cv2.putText(im, str(idx), pos,
-                    fontFace=cv2.FONT_HERSHEY_SCRIPT_SIMPLEX,
-                    fontScale=0.4,
-                    color=(0, 0, 255))
-        cv2.circle(im, pos, 3, color=(0, 255, 255))
-    return im
-
-def draw_convex_hull(im, points, color):
-    points = cv2.convexHull(points)
-    cv2.fillConvexPoly(im, points, color=color)
-
-def get_face_mask(im, landmarks):
-    im = np.zeros(im.shape[:2], dtype=np.float64)
-
-    for group in OVERLAY_POINTS:
-        draw_convex_hull(im,
-                         landmarks[group],
-                         color=1)
-
-    im = np.array([im, im, im]).transpose((1, 2, 0))
-
-    im = (cv2.GaussianBlur(im, (FEATHER_AMOUNT, FEATHER_AMOUNT), 0) > 0) * 1.0
-    im = cv2.GaussianBlur(im, (FEATHER_AMOUNT, FEATHER_AMOUNT), 0)
-
-    return im
-    
 def transformation_from_points(points1, points2):
     points1 = points1.astype(np.float64)
     points2 = points2.astype(np.float64)
@@ -98,14 +71,6 @@ def transformation_from_points(points1, points2):
     return np.vstack([np.hstack(((s2 / s1) * R,
                                  c2.T - (s2 / s1) * R * c1.T)),
                       np.matrix([0., 0., 1.])])
-
-def read_im_and_landmarks(fname):
-    im = cv2.imread(fname, cv2.IMREAD_COLOR)
-    im = cv2.resize(im, (im.shape[1] * SCALE_FACTOR,
-                         im.shape[0] * SCALE_FACTOR))
-    s = get_landmarks(im)
-
-    return im, s
 
 def warp_im(im, M, dshape):
     output_im = np.zeros(dshape, dtype=im.dtype)
@@ -132,56 +97,57 @@ def correct_colours(im1, im2, landmarks1):
     return (im2.astype(np.float64) * im1_blur.astype(np.float64) /
                                                 im2_blur.astype(np.float64))
 
+def get_face_mask(im, landmarks):
+    im = np.zeros(im.shape[:2], dtype=np.float64)
 
-im1, landmarks1 = read_im_and_landmarks(sys.argv[1])
-im2, landmarks2 = read_im_and_landmarks(sys.argv[2])
+    for group in OVERLAY_POINTS:
+        draw_convex_hull(im,
+                         landmarks[group],
+                         color=1)
 
-M = transformation_from_points(landmarks1[ALIGN_POINTS],
-                               landmarks2[ALIGN_POINTS])
+    im = np.array([im, im, im]).transpose((1, 2, 0))
 
-mask = get_face_mask(im2, landmarks2)
-warped_mask = warp_im(mask, M, im1.shape)
-combined_mask = np.max([get_face_mask(im1, landmarks1), warped_mask],
-                          axis=0)
+    im = (cv2.GaussianBlur(im, (FEATHER_AMOUNT, FEATHER_AMOUNT), 0) > 0) * 1.0
+    im = cv2.GaussianBlur(im, (FEATHER_AMOUNT, FEATHER_AMOUNT), 0)
 
-warped_im2 = warp_im(im2, M, im1.shape)
-warped_corrected_im2 = correct_colours(im1, warped_im2, landmarks1)
+    return im
 
-output_im = im1 * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask
-
-cv2.imwrite('output.jpg', output_im)
+def draw_convex_hull(im, points, color):
+    points = cv2.convexHull(points)
+    cv2.fillConvexPoly(im, points, color=color)
 
 
 
-app = Flask(__name__)
+    # Api for frontend calling
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+@app.route('/swap', methods=['POST'])
+def swap():
+    file1 = request.files['image1']
+    file2 = request.files['image2']
 
-@app.route('/upload', methods=['POST'])
-def upload():
-    if 'file1' not in request.files or 'file2' not in request.files:
-        return "Please upload two images."
+    im1 = cv2.imdecode(np.frombuffer(file1.read(), np.uint8), cv2.IMREAD_COLOR)
+    im2 = cv2.imdecode(np.frombuffer(file2.read(), np.uint8), cv2.IMREAD_COLOR)
 
-    file1 = request.files['file1']
-    file2 = request.files['file2']
+    landmarks1 = get_landmarks(im1)
+    landmarks2 = get_landmarks(im2)
 
-    if file1.filename == '' or file2.filename == '':
-        return "Please select two images."
+    M = transformation_from_points(landmarks1[ALIGN_POINTS],
+                                   landmarks2[ALIGN_POINTS])
 
-    im1 = cv2.imdecode(np.fromstring(file1.read(), np.uint8), cv2.IMREAD_COLOR)
-    im2 = cv2.imdecode(np.fromstring(file2.read(), np.uint8), cv2.IMREAD_COLOR)
+    mask = get_face_mask(im2, landmarks2)
+    warped_mask = warp_im(mask, M, im1.shape)
+    combined_mask = np.max([get_face_mask(im1, landmarks1), warped_mask],
+                              axis=0)
 
-   
+    warped_im2 = warp_im(im2, M, im1.shape)
+    warped_corrected_im2 = correct_colours(im1, warped_im2, landmarks1)
 
-    
+    output_im = im1 * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask
 
-    # Save output to a temporary file
-    cv2.imwrite('output.jpg', output_im)
+    _, img_encoded = cv2.imencode('.jpg', output_im)
+    response = img_encoded.tobytes()
 
-    # Return the output file to the user
-    return send_file('output.jpg', mimetype='image/jpeg')
+    return response, 200, {'Content-Type': 'image/jpeg'}
 
 if __name__ == '__main__':
     app.run(debug=True)
