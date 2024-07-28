@@ -12,9 +12,7 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import AdbIcon from '@mui/icons-material/Adb';
-import './logo.png'
-
-
+import logo from '../Images/logo.png';
 
 
 
@@ -45,7 +43,7 @@ function ResponsiveAppBar() {
       <Container maxWidth="xl">
         <Toolbar disableGutters>
 
-          <img src='logo.png' alt='Logo'/>
+          <img src={logo} alt='Logo'/>
           {/* <AdbIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} /> */}
           <Typography
             variant="h6"
