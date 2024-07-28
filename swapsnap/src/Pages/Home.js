@@ -3,7 +3,9 @@ import axios from 'axios';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import Button from 'react-bootstrap/Button';
 import './Home.css'
+
 
 export default function Home() {
   const [image1, setImage1] = useState(null);
@@ -67,9 +69,9 @@ export default function Home() {
               </div>
             </Col>
           </Row>
-        <Row >
-        <button type="submit">Swap Faces</button>
-        </Row>
+ 
+        <Button  variant="outline-primary" type="submit" >Swap Faces</Button>
+      
         </Container>
       </form>
       {result && (
