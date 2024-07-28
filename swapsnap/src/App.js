@@ -5,6 +5,9 @@ import NavBar from './Components/NavBar';
 import './App.css';
 
 
+
+
+
 function App() {
   
   return (
@@ -15,7 +18,7 @@ function App() {
             <Route path="/" element= {<Home/>}></Route>
           </Routes>
         </Router>
-      </div>
+      </div>  
   );
 }
 
