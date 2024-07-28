@@ -3,7 +3,7 @@ import axios from 'axios';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
-
+import './Home.css'
 
 export default function Home() {
   const [image1, setImage1] = useState(null);
@@ -53,7 +53,7 @@ export default function Home() {
           <Row style={{ rowGap: '200px' }}>
             <Col>
               <div>
-              {image1Preview && <img src={image1Preview} alt="Original Image Preview" style={{ maxWidth: '100%', maxHeight: '200px' }} />}
+              {image1Preview && <img src={image1Preview} alt="Original Preview" style={{ maxWidth: '100%', maxHeight: '200px' }} />}
                 <label>Upload Original Image: </label>
                 <input type="file" onChange={handleImage1Change} />
               </div>
