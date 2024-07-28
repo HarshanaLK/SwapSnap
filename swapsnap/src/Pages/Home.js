@@ -69,9 +69,9 @@ export default function Home() {
               </div>
             </Col>
           </Row>
- 
+        <div className='button'>
         <Button  variant="outline-primary" type="submit" >Swap Faces</Button>
-      
+        </div>
         </Container>
       </form>
       {result && (
